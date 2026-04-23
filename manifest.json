@@ -1,0 +1,42 @@
+{
+  "name": "RPSC 1st Grade Mock Practice",
+  "short_name": "RPSC Mock",
+  "description": "RPSC 1st Grade Mock Practice App - Paper 1 & Paper 2",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f8f5f0",
+  "theme_color": "#2563eb",
+  "orientation": "portrait",
+  "lang": "hi",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Paper-1 Practice",
+      "short_name": "Paper 1",
+      "description": "सामान्य जागरूकता Practice",
+      "url": "./index.html",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Paper-2 Practice",
+      "short_name": "Paper 2",
+      "description": "वाणिज्य Practice",
+      "url": "./index.html",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
