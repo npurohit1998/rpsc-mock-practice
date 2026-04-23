@@ -626,11 +626,10 @@ async function loadFirebase() {
 }
 async function saveData() {
   saveLocal();
-  if(!db || FIREBASE_CONFIG.apiKey==="YOUR_API_KEY") return;
-  try {
-    const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
-    await Promise.all([setDoc(doc(db,'rpsc','progress'),prog), setDoc(doc(db,'rpsc','questions'),state.allQs)]);
-  } catch(e){}
+  if(!db) return;
+  const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
+  await setDoc(doc(db,'rpsc','questions'), state.allQs);
+  await setDoc(doc(db,'rpsc','progress'), prog);
 }
 
 // ===== COUNTDOWN =====
@@ -907,21 +906,25 @@ async function uploadQuestions(){
   const paper=document.getElementById('upload-paper').value, subject=document.getElementById('upload-subject').value, topic=document.getElementById('upload-topic').value;
   if(!paper||!subject||!topic){showToast('⚠️ Paper, Subject और Topic तीनों चुनें!');return;}
   if(!pendingData){showToast('⚠️ JSON file select करें!');return;}
-  showLoading('Uploading...');
+  showLoading('Firebase पर save हो रहा है...');
   if(!state.allQs[paper]) state.allQs[paper]={};
   if(!state.allQs[paper][subject]) state.allQs[paper][subject]={};
   if(!state.allQs[paper][subject][topic]) state.allQs[paper][subject][topic]=[];
   const existing=state.allQs[paper][subject][topic];
   const newQs=pendingData.questions.filter(nq=>!existing.find(eq=>eq.q===nq.q));
+  if(newQs.length===0){hideLoading();showToast('⚠️ सभी प्रश्न पहले से मौजूद हैं!');return;}
   state.allQs[paper][subject][topic].push(...newQs);
-  saveData().then(()=>{
-    hideLoading(); showToast(`✅ ${newQs.length} नए questions upload हुए!`);
+  try {
+    await saveData();
+    hideLoading();
+    showToast('✅ '+newQs.length+' नए questions Firebase पर save हुए!');
     updateDashboard(); pendingData=null;
     document.getElementById('upload-preview').classList.remove('show');
     document.getElementById('upload-btn').disabled=true;
     document.getElementById('file-input').value='';
-  }).catch(()=>{hideLoading();showToast('❌ Upload failed. Retry करें।');});
+  } catch(e){console.error(e);hideLoading();showToast('❌ Upload failed: '+e.message);}
 }
+
 function copyTemplate(){
   const t='{\n  "questions": [\n    {\n      "q": "प्रश्न यहाँ?",\n      "a": "विकल्प A",\n      "b": "विकल्प B",\n      "c": "विकल्प C",\n      "d": "विकल्प D",\n      "ans": "a",\n      "exp": "समझाइश यहाँ"\n    }\n  ]\n}';
   navigator.clipboard.writeText(t).then(()=>showToast('📋 Template copied!')).catch(()=>showToast('Manual copy करें'));
