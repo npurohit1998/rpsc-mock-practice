@@ -303,7 +303,6 @@ button{font-family:var(--fm);cursor:pointer;border:none;outline:none}
 </head>
 <body>
 
-<!-- HOME -->
 <div id="home" class="screen active">
   <div class="home-header">
     <div class="app-brand">
@@ -388,7 +387,6 @@ button{font-family:var(--fm);cursor:pointer;border:none;outline:none}
   </div>
 </div>
 
-<!-- TOPICS -->
 <div id="topics" class="screen">
   <div class="topbar">
     <button class="back-btn" onclick="showScreen('home')">←</button>
@@ -397,7 +395,6 @@ button{font-family:var(--fm);cursor:pointer;border:none;outline:none}
   <div class="topics-body" id="topics-body"></div>
 </div>
 
-<!-- QUIZ COUNT -->
 <div id="quiz-count" class="screen">
   <div class="count-card">
     <div class="count-header">
@@ -424,7 +421,6 @@ button{font-family:var(--fm);cursor:pointer;border:none;outline:none}
   </div>
 </div>
 
-<!-- QUIZ -->
 <div id="quiz" class="screen">
   <div class="quiz-topbar">
     <div class="quiz-top-row">
@@ -451,7 +447,6 @@ button{font-family:var(--fm);cursor:pointer;border:none;outline:none}
   </div>
 </div>
 
-<!-- RESULTS -->
 <div id="results" class="screen">
   <div class="topbar">
     <button class="back-btn" onclick="showScreen('home')">🏠</button>
@@ -480,7 +475,6 @@ button{font-family:var(--fm);cursor:pointer;border:none;outline:none}
   </div>
 </div>
 
-<!-- UPLOAD -->
 <div id="upload" class="screen">
   <div class="topbar">
     <button class="back-btn" onclick="showScreen('home')">←</button>
@@ -511,13 +505,12 @@ button{font-family:var(--fm);cursor:pointer;border:none;outline:none}
     </div>
     <div class="upload-card" style="background:var(--purple-light);border-color:rgba(124,58,237,.15)">
       <div style="font-size:13px;font-weight:700;color:var(--purple);margin-bottom:8px" class="h">🤖 Gemini Prompt:</div>
-      <div style="font-family:var(--fh);font-size:12px;color:var(--text2);line-height:1.7;background:#fff;padding:12px;border-radius:8px" id="gemini-prompt-display">RPSC 1st Grade के लिए "<span id="prompt-topic">TOPIC</span>" पर 20 MCQ questions बनाओ। JSON format में response दो, "questions" array हो। हर question में: "q" (प्रश्न), "a","b","c","d" (विकल्प), "ans" (a/b/c/d), "exp" (हिंदी explanation)। सिर्फ valid JSON, कोई extra text नहीं।</div>
+      <div style="font-family:var(--fh);font-size:12px;color:var(--text2);line-height:1.7;background:#fff;padding:12px;border-radius:8px" id="gemini-prompt-display">RPSC 1st Grade के लिए "<span id="prompt-topic">TOPIC</span>" पर 20 MCQ questions बनाओ। JSON format में response दो, "questions" array हो। हर question में: "q" (हिंदी प्रश्न), "a","b","c","d" (विकल्प), "ans" (a/b/c/d), "exp" (हिंदी explanation)। सिर्फ valid JSON, कोई extra text नहीं।</div>
       <button class="copy-btn h" style="margin-top:10px" onclick="copyGeminiPrompt()">📋 Prompt Copy करें</button>
     </div>
   </div>
 </div>
 
-<!-- REVIEW -->
 <div id="review" class="screen">
   <div class="topbar">
     <button class="back-btn" onclick="showScreen('home')">←</button>
@@ -534,7 +527,6 @@ button{font-family:var(--fm);cursor:pointer;border:none;outline:none}
 
 <script>
 // ===== FIREBASE CONFIG =====
-// Replace with your actual Firebase config after setup
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyBCmPRR-huTsCh8sxrEA1ajj8x9c3zxt4o",
   authDomain: "rpsc-mock-practice.firebaseapp.com",
@@ -598,7 +590,6 @@ let prog = {
 async function initFirebase() {
   try {
     const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js');
-    // यहाँ enableIndexedDbPersistence जोड़ा गया है
     const { getFirestore, enableIndexedDbPersistence } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
     
     const app = initializeApp(FIREBASE_CONFIG);
@@ -614,31 +605,74 @@ async function initFirebase() {
 
     await loadFirebase();
   } catch(e) { loadLocal(); }
-}function loadLocal() {
+}
+
+function loadLocal() {
   try {
     const p = localStorage.getItem('rpsc_prog'); if(p) prog = JSON.parse(p);
     const q = localStorage.getItem('rpsc_qs'); if(q) state.allQs = JSON.parse(q);
   } catch(e){}
   updateDashboard();
 }
+
 function saveLocal() {
   try { localStorage.setItem('rpsc_prog', JSON.stringify(prog)); localStorage.setItem('rpsc_qs', JSON.stringify(state.allQs)); } catch(e){}
 }
+
 async function loadFirebase() {
   try {
     const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
     const [ps, qs] = await Promise.all([getDoc(doc(db,'rpsc','progress')), getDoc(doc(db,'rpsc','questions'))]);
-    if(ps.exists()) prog = ps.data();
-    if(qs.exists()) state.allQs = qs.data();
-  } catch(e) { loadLocal(); return; }
+    
+    // प्रोग्रेस को मिलाना (Merge)
+    if(ps.exists()) {
+      const cProg = ps.data();
+      prog.totalAttempted = Math.max(prog.totalAttempted, cProg.totalAttempted || 0);
+      prog.totalCorrect = Math.max(prog.totalCorrect, cProg.totalCorrect || 0);
+      prog.totalWrong = Math.max(prog.totalWrong, cProg.totalWrong || 0);
+      prog.totalSkipped = Math.max(prog.totalSkipped, cProg.totalSkipped || 0);
+      
+      if(cProg.sessions) {
+        cProg.sessions.forEach(cs => { if(!prog.sessions.find(s => s.date === cs.date)) prog.sessions.push(cs); });
+      }
+      if(cProg.wrongBank) {
+        cProg.wrongBank.forEach(cw => { if(!prog.wrongBank.find(w => w.q === cw.q)) prog.wrongBank.push(cw); });
+      }
+    }
+
+    // प्रश्नों को मिलाना (Merge)
+    if(qs.exists()) {
+       const cQs = qs.data();
+       for(let paper in cQs) {
+         if(!state.allQs[paper]) state.allQs[paper] = {};
+         for(let subj in cQs[paper]) {
+           if(!state.allQs[paper][subj]) state.allQs[paper][subj] = {};
+           for(let topic in cQs[paper][subj]) {
+             if(!state.allQs[paper][subj][topic]) state.allQs[paper][subj][topic] = [];
+             const existing = state.allQs[paper][subj][topic];
+             cQs[paper][subj][topic].forEach(cq => {
+                if(!existing.find(eq => eq.q === cq.q)) existing.push(cq);
+             });
+           }
+         }
+       }
+    }
+    saveLocal();
+  } catch(e) { 
+    console.error("FIREBASE ERROR: ", e);
+    alert("चेतावनी: Firebase से प्रश्न लोड नहीं हो पाए! कारण: " + e.message); 
+    loadLocal(); 
+    return; 
+  }
   updateDashboard();
 }
+
 async function saveData() {
   saveLocal();
   if(!db) return;
   const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
   
-  // यहाँ { merge: true } जोड़ने से पुराना डेटा Overwrite नहीं होगा
+  // { merge: true } से पुराना डेटा Overwrite नहीं होगा
   await setDoc(doc(db,'rpsc','questions'), state.allQs, { merge: true });
   await setDoc(doc(db,'rpsc','progress'), prog, { merge: true });
 }
@@ -743,7 +777,6 @@ function goToCount(type,paper,subject,topic) {
   state.selectedCount = null;
   document.getElementById('start-btn').disabled = true;
   document.getElementById('start-btn').textContent = 'प्रश्न संख्या चुनें';
-  // Update gemini prompt
   if(topic) document.getElementById('prompt-topic').textContent = topic;
   showScreen('quiz-count');
 }
@@ -833,9 +866,13 @@ function showResult(ch, timeout) {
 function nextQuestion(){
   if(state.qIdx>=state.questions.length-1) finishSession(); else {state.qIdx++;renderQ();}
 }
+
 async function finishSession() {
   clearInterval(state.timerInterval);
   const tot = state.questions.length;
+  
+  showLoading('प्रोग्रेस सेव हो रही है...');
+  if(db) await loadFirebase(); // Sync to prevent overwrite
   
   prog.totalAttempted += tot; 
   prog.totalCorrect += state.correct; 
@@ -856,9 +893,11 @@ async function finishSession() {
   });
   
   await saveData(); // यहाँ await लगाया गया है ताकि प्रोग्रेस पक्का सेव हो
+  hideLoading();
   updateDashboard(); 
   showResults();
 }
+
 function showResults(){
   const {correct:c,wrong:w,skipped:s,score,wrongQs:wq,questions:qs}=state;
   const tot=qs.length, acc=c+w>0?c/(c+w)*100:0;
@@ -931,11 +970,15 @@ function handleFileSelect(e){
     }catch{showToast('❌ Invalid JSON! Template के अनुसार बनाएं।');}
   }; r.readAsText(file);
 }
+
 async function uploadQuestions(){
   const paper=document.getElementById('upload-paper').value, subject=document.getElementById('upload-subject').value, topic=document.getElementById('upload-topic').value;
   if(!paper||!subject||!topic){showToast('⚠️ Paper, Subject और Topic तीनों चुनें!');return;}
   if(!pendingData){showToast('⚠️ JSON file select करें!');return;}
-  showLoading('Firebase पर save हो रहा है...');
+  showLoading('Firebase से पुराना डेटा मिला रहे हैं...');
+  
+  if(db) await loadFirebase(); // Upload से पहले Sync करें
+
   if(!state.allQs[paper]) state.allQs[paper]={};
   if(!state.allQs[paper][subject]) state.allQs[paper][subject]={};
   if(!state.allQs[paper][subject][topic]) state.allQs[paper][subject][topic]=[];
