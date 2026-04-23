@@ -6,6 +6,8 @@ const STATIC_ASSETS = [
   './',
   './index.html',
   './manifest.json',
+  './icon-192.png',  // <-- यह लाइन जोड़ी गई है
+  './icon-512.png',  // <-- यह लाइन जोड़ी गई है
   'https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&display=swap'
 ];
 
