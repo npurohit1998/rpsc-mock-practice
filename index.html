@@ -382,6 +382,11 @@ button{font-family:var(--fm);cursor:pointer;border:none;outline:none}
       <div class="quick-actions">
         <button class="qa-btn" onclick="showScreen('review')"><span class="qa-icon">🔁</span><div class="qa-text"><strong class="h">Review करें</strong><span>गलत questions</span></div></button>
         <button class="qa-btn" onclick="showScreen('upload')"><span class="qa-icon">⬆️</span><div class="qa-text"><strong class="h">Upload करें</strong><span>JSON questions</span></div></button>
+        
+        <button class="qa-btn" onclick="forceSync()" style="grid-column: span 2; justify-content: center; text-align: center; background: var(--accent-light); border-color: var(--accent);">
+          <span class="qa-icon">🔄</span>
+          <div class="qa-text"><strong class="h" style="color: var(--accent);">Sync Data</strong><span style="color: var(--accent);">क्लाउड से नए प्रश्न डाउनलोड करें</span></div>
+        </button>
       </div>
     </div>
   </div>
@@ -975,28 +980,33 @@ async function uploadQuestions(){
   const paper=document.getElementById('upload-paper').value, subject=document.getElementById('upload-subject').value, topic=document.getElementById('upload-topic').value;
   if(!paper||!subject||!topic){showToast('⚠️ Paper, Subject और Topic तीनों चुनें!');return;}
   if(!pendingData){showToast('⚠️ JSON file select करें!');return;}
-  showLoading('Firebase से पुराना डेटा मिला रहे हैं...');
+  showLoading('Firebase पर प्रश्न सेव हो रहे हैं...');
   
-  if(db) await loadFirebase(); // Upload से पहले Sync करें
-
   if(!state.allQs[paper]) state.allQs[paper]={};
   if(!state.allQs[paper][subject]) state.allQs[paper][subject]={};
   if(!state.allQs[paper][subject][topic]) state.allQs[paper][subject][topic]=[];
+  
   const existing=state.allQs[paper][subject][topic];
   const newQs=pendingData.questions.filter(nq=>!existing.find(eq=>eq.q===nq.q));
+  
   if(newQs.length===0){hideLoading();showToast('⚠️ सभी प्रश्न पहले से मौजूद हैं!');return;}
   state.allQs[paper][subject][topic].push(...newQs);
+  
   try {
-    await saveData();
+    saveLocal();
+    if(db) {
+       const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
+       // अब यह सिर्फ Questions सेव करेगा, Progress को छुएगा भी नहीं!
+       await setDoc(doc(db,'rpsc','questions'), state.allQs, { merge: true });
+    }
     hideLoading();
-    showToast('✅ '+newQs.length+' नए questions Firebase पर save हुए!');
+    showToast('✅ '+newQs.length+' नए questions सेव हुए!');
     updateDashboard(); pendingData=null;
     document.getElementById('upload-preview').classList.remove('show');
     document.getElementById('upload-btn').disabled=true;
     document.getElementById('file-input').value='';
   } catch(e){console.error(e);hideLoading();showToast('❌ Upload failed: '+e.message);}
 }
-
 function copyTemplate(){
   const t='{\n  "questions": [\n    {\n      "q": "प्रश्न यहाँ?",\n      "a": "विकल्प A",\n      "b": "विकल्प B",\n      "c": "विकल्प C",\n      "d": "विकल्प D",\n      "ans": "a",\n      "exp": "समझाइश यहाँ"\n    }\n  ]\n}';
   navigator.clipboard.writeText(t).then(()=>showToast('📋 Template copied!')).catch(()=>showToast('Manual copy करें'));
@@ -1028,6 +1038,25 @@ if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch
 
 // ===== INIT =====
 window.onload=()=>{updateCD();setInterval(updateCD,1000);initFirebase();};
+
+  // ===== FORCE SYNC =====
+async function forceSync() {
+  if(!db) { showToast('⚠️ Firebase कनेक्ट नहीं है!'); return; }
+  showLoading('क्लाउड से नए प्रश्न डाउनलोड हो रहे हैं...');
+  try {
+    const { doc, getDocFromServer } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
+    const qs = await getDocFromServer(doc(db,'rpsc','questions'));
+    if(qs.exists()) {
+       state.allQs = qs.data(); 
+       saveLocal();
+       updateDashboard();
+       showToast('✅ नए प्रश्न सफलतापूर्वक सिंक हो गए!');
+    }
+  } catch(e) {
+    showToast('❌ सिंक फेल! कृपया इंटरनेट चेक करें।');
+  }
+  hideLoading();
+}
 </script>
 </body>
 </html>
