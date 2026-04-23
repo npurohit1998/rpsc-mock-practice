@@ -1,7 +1,7 @@
 // RPSC Mock Practice - Service Worker
 // Version: 1.0.1
 
-const CACHE_NAME = 'rpsc-mock-v1';
+const CACHE_NAME = 'rpsc-mock-v2';
 const STATIC_ASSETS = [
   './',
   './index.html',
