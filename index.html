@@ -536,12 +536,12 @@ button{font-family:var(--fm);cursor:pointer;border:none;outline:none}
 // ===== FIREBASE CONFIG =====
 // Replace with your actual Firebase config after setup
 const FIREBASE_CONFIG = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyBCmPRR-huTsCh8sxrEA1ajj8x9c3zxt4o",
+  authDomain: "rpsc-mock-practice.firebaseapp.com",
+  projectId: "rpsc-mock-practice",
+  storageBucket: "rpsc-mock-practice.firebasestorage.app",
+  messagingSenderId: "542176719668",
+  appId: "1:542176719668:web:099ee7ddb3cd3dbd7fab61"
 };
 
 // ===== CURRICULUM DATA =====
@@ -597,7 +597,7 @@ let prog = {
 // ===== FIREBASE =====
 async function initFirebase() {
   try {
-    if (FIREBASE_CONFIG.apiKey === "YOUR_API_KEY") { loadLocal(); return; }
+    if (FIREBASE_CONFIG.apiKey === "AIzaSyBCmPRR-huTsCh8sxrEA1ajj8x9c3zxt4o") { loadLocal(); return; }
     const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js');
     const { getFirestore } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
     const app = initializeApp(FIREBASE_CONFIG);
