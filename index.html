@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="hi">
 <head>
 <meta charset="UTF-8">
@@ -536,13 +536,14 @@ button{font-family:var(--fm);cursor:pointer;border:none;outline:none}
 // ===== FIREBASE CONFIG =====
 // Replace with your actual Firebase config after setup
 const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyBCmPRR-huTsCh8sxrEA1ajj8x9c3zxt4o",
-  authDomain: "rpsc-mock-practice.firebaseapp.com",
-  projectId: "rpsc-mock-practice",
-  storageBucket: "rpsc-mock-practice.firebasestorage.app",
-  messagingSenderId: "542176719668",
-  appId: "1:542176719668:web:099ee7ddb3cd3dbd7fab61"
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
 };
+
 // ===== CURRICULUM DATA =====
 const P1 = {
   "भारतीय इतिहास":["1857 का स्वतन्त्रता संग्राम","राष्ट्रवाद का विकास (1858-1919)","सामूहिक राष्ट्रवाद का उदय (1919-1942)","क्रन्तिकारी गतिविधियाँ","स्वतंत्रता व विभाजन की तरफ","19वीं व 20वीं सदी में सामाजिक व धार्मिक पुनर्जागरण","19वीं व 20वीं सदी में प्रमुख नेतृत्वकर्ता","राष्ट्रीय आन्दोलन में गाँधी, नेहरु, पटेल, आज़ाद व आंबेडकर"],
@@ -649,7 +650,7 @@ function updateDashboard() {
   document.getElementById('total-correct').textContent = tc;
   document.getElementById('total-wrong').textContent = tw;
   document.getElementById('total-skipped').textContent = ts;
-  const pct = Math.min(ta/100,100);
+  const pct = Math.min(ta/10000*100,100);
   document.getElementById('main-prog-bar').style.width = pct+'%';
   document.getElementById('main-prog-pct').textContent = pct.toFixed(1)+'% पूर्ण';
   let p1c=0,p2c=0;
@@ -902,7 +903,7 @@ function handleFileSelect(e){
     }catch{showToast('❌ Invalid JSON! Template के अनुसार बनाएं।');}
   }; r.readAsText(file);
 }
-function uploadQuestions(){
+async function uploadQuestions(){
   const paper=document.getElementById('upload-paper').value, subject=document.getElementById('upload-subject').value, topic=document.getElementById('upload-topic').value;
   if(!paper||!subject||!topic){showToast('⚠️ Paper, Subject और Topic तीनों चुनें!');return;}
   if(!pendingData){showToast('⚠️ JSON file select करें!');return;}
@@ -913,14 +914,13 @@ function uploadQuestions(){
   const existing=state.allQs[paper][subject][topic];
   const newQs=pendingData.questions.filter(nq=>!existing.find(eq=>eq.q===nq.q));
   state.allQs[paper][subject][topic].push(...newQs);
-  try {
-    await saveData();
+  saveData().then(()=>{
     hideLoading(); showToast(`✅ ${newQs.length} नए questions upload हुए!`);
     updateDashboard(); pendingData=null;
     document.getElementById('upload-preview').classList.remove('show');
     document.getElementById('upload-btn').disabled=true;
     document.getElementById('file-input').value='';
-  } catch(e) {hideLoading();showToast('❌ Upload failed. Retry करें।');}
+  }).catch(()=>{hideLoading();showToast('❌ Upload failed. Retry करें।');});
 }
 function copyTemplate(){
   const t='{\n  "questions": [\n    {\n      "q": "प्रश्न यहाँ?",\n      "a": "विकल्प A",\n      "b": "विकल्प B",\n      "c": "विकल्प C",\n      "d": "विकल्प D",\n      "ans": "a",\n      "exp": "समझाइश यहाँ"\n    }\n  ]\n}';
