@@ -595,21 +595,22 @@ let prog = {
 async function initFirebase() {
   try {
     const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js');
-    const { getFirestore, enableIndexedDbPersistence } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
+    const { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
     
     const app = initializeApp(FIREBASE_CONFIG);
-    db = getFirestore(app);
+    
+    // ✅ नया तरीका: initializeFirestore के साथ offline cache सेट करें
+    // यही "client is offline" error का असली इलाज है
+    db = initializeFirestore(app, {
+      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+    });
 
-    // Firebase की सुपर फास्ट लोकल मेमोरी (Offline Cache) चालू करें
-    try {
-      await enableIndexedDbPersistence(db);
-      console.log("Firebase Cache Enabled!");
-    } catch (err) {
-      console.log("Cache error: ", err);
-    }
-
+    console.log("Firebase + Offline Cache चालू हो गई ✅");
     await loadFirebase();
-  } catch(e) { loadLocal(); }
+  } catch(e) { 
+    console.error("Firebase init failed:", e);
+    loadLocal(); 
+  }
 }
 
 function loadLocal() {
@@ -665,7 +666,8 @@ async function loadFirebase() {
     saveLocal();
   } catch(e) { 
     console.error("FIREBASE ERROR: ", e);
-    alert("चेतावनी: Firebase से प्रश्न लोड नहीं हो पाए! कारण: " + e.message); 
+    // ✅ alert() हटाया — अब सिर्फ toast दिखेगा, local data काम करता रहेगा
+    showToast('⚠️ Cloud sync नहीं हुआ, local data से चल रहा है।');
     loadLocal(); 
     return; 
   }
@@ -675,11 +677,14 @@ async function loadFirebase() {
 async function saveData() {
   saveLocal();
   if(!db) return;
-  const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
-  
-  // { merge: true } से पुराना डेटा Overwrite नहीं होगा
-  await setDoc(doc(db,'rpsc','questions'), state.allQs, { merge: true });
-  await setDoc(doc(db,'rpsc','progress'), prog, { merge: true });
+  try {
+    const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js');
+    // ✅ सिर्फ Progress सेव — Questions सिर्फ upload पर सेव होते हैं
+    await setDoc(doc(db,'rpsc','progress'), prog, { merge: true });
+  } catch(e) {
+    console.error('Progress save failed:', e);
+    showToast('⚠️ Cloud progress save नहीं हुई, locally saved है।');
+  }
 }
 
 // ===== COUNTDOWN =====
@@ -877,7 +882,7 @@ async function finishSession() {
   const tot = state.questions.length;
   
   showLoading('प्रोग्रेस सेव हो रही है...');
-  if(db) await loadFirebase(); // Sync to prevent overwrite
+  // ✅ loadFirebase() यहाँ से हटाया — race condition था, progress overwrite होती थी
   
   prog.totalAttempted += tot; 
   prog.totalCorrect += state.correct; 
@@ -897,7 +902,7 @@ async function finishSession() {
     if(!prog.wrongBank.find(w => w.q === wq.q)) prog.wrongBank.push(wq);
   });
   
-  await saveData(); // यहाँ await लगाया गया है ताकि प्रोग्रेस पक्का सेव हो
+  await saveData();
   hideLoading();
   updateDashboard(); 
   showResults();
